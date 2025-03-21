@@ -132,7 +132,6 @@ class PublicDataAPIClient:
         try:
             # Parse JSON response
             data = response.json()
-            logger.error(f"데이터 타입: {type(data)}")
             
             # Check for error in response
             if isinstance(data, dict) and 'error' in data:
@@ -208,7 +207,7 @@ class PublicDataAPIClient:
             params["page"] = page_num
             
             # Log API call details
-            logger.error(f"추가 API 호출 페이지: {page_num}")
+            logger.info(f"추가 API 호출 페이지: {page_num}")
             
             # Make API request
             response = self._make_api_request(params, page_num)
@@ -229,7 +228,7 @@ class PublicDataAPIClient:
                     elif "data" in page_data and isinstance(page_data["data"], list):
                         page_items = page_data["data"]
                 
-                logger.error(f"페이지 {page_num} 아이템 수: {len(page_items)}")
+                logger.info(f"페이지 {page_num} 아이템 수: {len(page_items)}")
                 
                 # In debug mode, add items until we reach the maximum
                 if self.debug_mode and self.max_items:
@@ -301,5 +300,5 @@ class PublicDataAPIClient:
             additional_items = self._fetch_additional_pages(params, page + 1, total_pages, len(all_items))
             all_items.extend(additional_items)
         
-        logger.error(f"총 {len(all_items)}개의 항목을 가져왔습니다")
+        logger.info(f"총 {len(all_items)}개의 항목을 가져왔습니다")
         return all_items 

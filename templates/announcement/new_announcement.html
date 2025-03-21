@@ -57,38 +57,14 @@
                 </div>
             </div>
             
-            <div class="mb-3">
-                <label for="selected_platform" class="form-label">AI 플랫폼</label>
-                <select class="form-select" id="selected_platform" name="selected_platform">
-                    {% for platform_id, platform_name in ai_platforms %}
-                        <option value="{{ platform_id }}" {% if selected_platform == platform_id %}selected{% endif %}>{{ platform_name }}</option>
+            <div class="mb-4">
+                <label for="selected_ai_model" class="form-label fw-bold">AI 모델 선택</label>
+                <select class="form-select form-select-lg" id="selected_ai_model" name="selected_ai_model">
+                    {% for model_id, model_name in ai_models %}
+                        <option value="{{ model_id }}" {% if selected_ai_model == model_id %}selected{% endif %}>{{ model_name }}</option>
                     {% endfor %}
                 </select>
-            </div>
-            
-            <div class="mb-3">
-                <label for="selected_model" class="form-label">AI 모델</label>
-                <div id="openai-models" class="model-selection" {% if selected_platform != 'openai' %}style="display:none"{% endif %}>
-                    <select class="form-select" name="selected_model" id="openai-model-select">
-                        {% for model_id, model_name in openai_models %}
-                            <option value="{{ model_id }}" {% if selected_model == model_id %}selected{% endif %}>{{ model_name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div id="claude-models" class="model-selection" {% if selected_platform != 'claude' %}style="display:none"{% endif %}>
-                    <select class="form-select" name="selected_model" id="claude-model-select">
-                        {% for model_id, model_name in claude_models %}
-                            <option value="{{ model_id }}" {% if selected_model == model_id %}selected{% endif %}>{{ model_name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div id="gemini-models" class="model-selection" {% if selected_platform != 'gemini' %}style="display:none"{% endif %}>
-                    <select class="form-select" name="selected_model" id="gemini-model-select">
-                        {% for model_id, model_name in gemini_models %}
-                            <option value="{{ model_id }}" {% if selected_model == model_id %}selected{% endif %}>{{ model_name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
+                <div class="form-text">지원되는 AI 모델 중 하나를 선택하세요</div>
             </div>
             
             <button type="submit" class="btn btn-primary" id="fetchButton">가져오기 및 필터링</button>
@@ -293,27 +269,7 @@
 
 {% block extra_js %}
 <script>
-    // Handle model selection based on platform
     document.addEventListener('DOMContentLoaded', function() {
-        const platformSelect = document.getElementById('selected_platform');
-        const modelSelections = document.querySelectorAll('.model-selection');
-        
-        function updateModelSelectionVisibility() {
-            const platform = platformSelect.value;
-            
-            // Hide all model selections
-            modelSelections.forEach(selection => {
-                selection.style.display = 'none';
-            });
-            
-            // Show the appropriate model selection
-            document.getElementById(`${platform}-models`).style.display = 'block';
-        }
-        
-        if (platformSelect) {
-            platformSelect.addEventListener('change', updateModelSelectionVisibility);
-        }
-        
         // Disable the fetch button for 10 seconds after submission
         const form = document.getElementById('fetchForm');
         const fetchButton = document.getElementById('fetchButton');

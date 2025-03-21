@@ -20,40 +20,17 @@ class NewAnnouncementView(View):
 
     def get(self, request: HttpRequest) -> HttpResponse:
         """Display the form for fetching new announcements"""
-        # Available AI platforms and models for dropdown
-        ai_platforms = [
-            ('openai', 'OpenAI'),
-            ('claude', 'Claude (Anthropic)'),
-            ('gemini', 'Gemini (Google)'),
-        ]
-        
-        openai_models = [
-            ('gpt-4o', 'GPT-4o'),
-            ('gpt-4o-mini', 'GPT-4o Mini'),
-            ('gpt-o3-mini', 'GPT-o3 Mini'),
-            ('gpt-o3-mini-high', 'GPT-o3 Mini High'),
-            ('gpt-o1-mini', 'GPT-o1 Mini'),
-        ]
-        
-        claude_models = [
-            ('claude-3-haiku-20240307', 'Claude 3 Haiku'),
-            ('claude-3-sonnet-20240229', 'Claude 3 Sonnet'),
-            ('claude-3-opus-20240229', 'Claude 3 Opus'),
-        ]
-        
-        gemini_models = [
-            ('gemini-2.0-flash', 'Gemini 2.0 Flash'),
-            ('gemini-2.0-flash-lite', 'Gemini 2.0 Flash-Lite'),
+        # Available AI integrated models for dropdown (limited to 3 specific models)
+        ai_models = [
+            ('openai-gpt-4o-mini', 'OpenAI - GPT-4o Mini'),
+            ('claude-3.5-haiku', 'Claude - 3.5 Haiku'),
+            ('gemini-2.0-flash-lite', 'Gemini - 2.0 Flash-Lite'),
         ]
         
         context = {
-            'ai_platforms': ai_platforms,
-            'openai_models': openai_models,
-            'claude_models': claude_models,
-            'gemini_models': gemini_models,
+            'ai_models': ai_models,
             'user_condition': '',
-            'selected_platform': 'openai',
-            'selected_model': 'gpt-4o-mini',
+            'selected_ai_model': 'openai-gpt-4o-mini',
             'region': '',
             'startup_period': '',
             'target_age': '',
@@ -63,48 +40,24 @@ class NewAnnouncementView(View):
     def post(self, request: HttpRequest) -> HttpResponse:
         """Process the form submission, fetch new announcements and apply AI filtering"""
         user_condition = request.POST.get('user_condition', '')
-        selected_platform = request.POST.get('selected_platform', 'openai')
-        selected_model = request.POST.get('selected_model', '')
+        selected_ai_model = request.POST.get('selected_ai_model', 'openai-gpt-4o-mini')
         
         # Get additional filter parameters
         region = request.POST.get('region', '')
         startup_period = request.POST.get('startup_period', '')
         target_age = request.POST.get('target_age', '')
         
-        # Available AI platforms and models for dropdown (to redisplay in the form)
-        ai_platforms = [
-            ('openai', 'OpenAI'),
-            ('claude', 'Claude (Anthropic)'),
-            ('gemini', 'Gemini (Google)'),
-        ]
-        
-        openai_models = [
-            ('gpt-4o', 'GPT-4o'),
-            ('gpt-4o-mini', 'GPT-4o Mini'),
-            ('gpt-o3-mini', 'GPT-o3 Mini'),
-            ('gpt-o3-mini-high', 'GPT-o3 Mini High'),
-            ('gpt-o1-mini', 'GPT-o1 Mini'),
-        ]
-        
-        claude_models = [
-            ('claude-3-haiku-20240307', 'Claude 3 Haiku'),
-            ('claude-3-sonnet-20240229', 'Claude 3 Sonnet'),
-            ('claude-3-opus-20240229', 'Claude 3 Opus'),
-        ]
-        
-        gemini_models = [
-            ('gemini-2.0-flash', 'Gemini 2.0 Flash'),
-            ('gemini-2.0-flash-lite', 'Gemini 2.0 Flash-Lite'),
+        # Available AI integrated models for dropdown (limited to 3 specific models)
+        ai_models = [
+            ('openai-gpt-4o-mini', 'OpenAI - GPT-4o Mini'),
+            ('claude-3.5-haiku', 'Claude - 3.5 Haiku'),
+            ('gemini-2.0-flash-lite', 'Gemini - 2.0 Flash-Lite'),
         ]
         
         context = {
-            'ai_platforms': ai_platforms,
-            'openai_models': openai_models,
-            'claude_models': claude_models,
-            'gemini_models': gemini_models,
+            'ai_models': ai_models,
             'user_condition': user_condition,
-            'selected_platform': selected_platform,
-            'selected_model': selected_model,
+            'selected_ai_model': selected_ai_model,
             'region': region,
             'startup_period': startup_period,
             'target_age': target_age,
@@ -129,92 +82,109 @@ class NewAnnouncementView(View):
                 messages.info(request, "API에서 새 공고를 찾을 수 없습니다.")
                 return render(request, self.template_name, context)
             
-            # 2. Save new announcements to DB if they don't already exist
-            saved_new_announcements = []
-            with transaction.atomic():
-                for item in new_items:
-                    serial_number = item.get("pbanc_sn", "")
-                    if serial_number and not AnnouncementNew.objects.filter(pk=serial_number).exists():
-                        # Convert date strings to date objects
-                        start_date = None
-                        end_date = None
-                        
-                        start_date_str = item.get("pbanc_rcpt_bgng_dt", "") or ""
-                        end_date_str = item.get("pbanc_rcpt_end_dt", "") or ""
-                        
-                        if start_date_str:
-                            try:
-                                # Check if the date is in YYYYMMDD format
-                                if len(start_date_str) == 8 and start_date_str.isdigit():
-                                    # Convert YYYYMMDD to YYYY-MM-DD
-                                    start_date_str = f"{start_date_str[:4]}-{start_date_str[4:6]}-{start_date_str[6:8]}"
-                                start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
-                            except ValueError:
-                                # If date conversion fails, leave as None
-                                pass
-                        
-                        if end_date_str:
-                            try:
-                                # Check if the date is in YYYYMMDD format
-                                if len(end_date_str) == 8 and end_date_str.isdigit():
-                                    # Convert YYYYMMDD to YYYY-MM-DD
-                                    end_date_str = f"{end_date_str[:4]}-{end_date_str[4:6]}-{end_date_str[6:8]}"
-                                end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
-                            except ValueError:
-                                # If date conversion fails, leave as None
-                                pass
-                                
-                        ann = AnnouncementNew(
-                            pbanc_sn=serial_number,
-                            biz_pbanc_nm=item.get("biz_pbanc_nm", "") or "",
-                            pbanc_ctnt=item.get("pbanc_ctnt", "") or "",
-                            supt_biz_clsfc=item.get("supt_biz_clsfc", "") or "",
-                            pbanc_rcpt_bgng_dt=start_date,
-                            pbanc_rcpt_end_dt=end_date,
-                            aply_trgt_ctnt=item.get("aply_trgt_ctnt", "") or "",
-                            aply_excl_trgt_ctnt=item.get("aply_excl_trgt_ctnt", "") or "",
-                            supt_regin=item.get("supt_regin", "") or "",
-                            pbanc_ntrp_nm=item.get("pbanc_ntrp_nm", "") or "",
-                            sprv_inst=item.get("sprv_inst", "") or "",
-                            detl_pg_url=item.get("detl_pg_url", "") or "",
-                            aply_trgt=item.get("aply_trgt", "") or "",
-                            biz_enyy=item.get("biz_enyy", "") or "",
-                            biz_trgt_age=item.get("biz_trgt_age", "") or "",
-                            intg_pbanc_biz_nm=item.get("intg_pbanc_biz_nm", "") or ""
-                        )
-                        ann.save()
-                        saved_new_announcements.append(ann)
-            
-            # Count of total and new announcements
+            # Count of total announcements from API
             total_count = len(new_items)
-            new_count = len(saved_new_announcements)
             
-            # 3. AI filtering on the newly saved announcements
-            filtered_announcements = []
-            if saved_new_announcements and user_condition:
+            # 2. Apply AI filtering on the API results before saving
+            filtered_items = []
+            filtered_serial_numbers = []
+            
+            if user_condition:
                 try:
-                    filtered_announcements = call_ai_model_for_filtering(
-                        saved_new_announcements, 
+                    # Convert API items to a format suitable for AI filtering
+                    api_items_for_ai = []
+                    for item in new_items:
+                        serial_number = item.get("pbanc_sn", "")
+                        if serial_number and not AnnouncementNew.objects.filter(pk=serial_number).exists():
+                            api_items_for_ai.append(item)
+                    
+                    # Apply AI filtering with the integrated model format
+                    filtered_items, filtered_serial_numbers = call_ai_model_for_filtering(
+                        api_items_for_ai, 
                         user_condition,
-                        selected_platform,
-                        selected_model
+                        selected_ai_model
                     )
                 except ValueError as e:
                     # This is caught when API key is missing
-                    api_key_error_msg = f"{selected_platform.upper()}_API_KEY가 설정되지 않았습니다. .env 파일에 API 키를 추가해 주세요."
+                    ai_platform = selected_ai_model.split('-')[0].upper()
+                    api_key_error_msg = f"{ai_platform}_API_KEY가 설정되지 않았습니다. .env 파일에 API 키를 추가해 주세요."
                     messages.error(request, api_key_error_msg)
-                    # Return all announcements without filtering
-                    filtered_announcements = saved_new_announcements
+                    # No filtering if AI API key is missing
+                    filtered_items = [item for item in new_items if item.get("pbanc_sn", "") and not AnnouncementNew.objects.filter(pk=item.get("pbanc_sn", "")).exists()]
+                    filtered_serial_numbers = [item.get("pbanc_sn", "") for item in filtered_items]
             else:
-                # If no filtering condition or no new items, use all new announcements
-                filtered_announcements = saved_new_announcements
+                # If no filtering condition, use all new announcements that don't exist in DB
+                filtered_items = [item for item in new_items if item.get("pbanc_sn", "") and not AnnouncementNew.objects.filter(pk=item.get("pbanc_sn", "")).exists()]
+                filtered_serial_numbers = [item.get("pbanc_sn", "") for item in filtered_items]
+            
+            # 3. Save only the filtered announcements to DB
+            saved_new_announcements = []
+            with transaction.atomic():
+                for item in filtered_items:
+                    serial_number = item.get("pbanc_sn", "")
+                    if not serial_number:
+                        continue
+                    
+                    # Convert date strings to date objects
+                    start_date = None
+                    end_date = None
+                    
+                    start_date_str = item.get("pbanc_rcpt_bgng_dt", "") or ""
+                    end_date_str = item.get("pbanc_rcpt_end_dt", "") or ""
+                    
+                    if start_date_str:
+                        try:
+                            # Check if the date is in YYYYMMDD format
+                            if len(start_date_str) == 8 and start_date_str.isdigit():
+                                # Convert YYYYMMDD to YYYY-MM-DD
+                                start_date_str = f"{start_date_str[:4]}-{start_date_str[4:6]}-{start_date_str[6:8]}"
+                            start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+                        except ValueError:
+                            # If date conversion fails, leave as None
+                            pass
+                    
+                    if end_date_str:
+                        try:
+                            # Check if the date is in YYYYMMDD format
+                            if len(end_date_str) == 8 and end_date_str.isdigit():
+                                # Convert YYYYMMDD to YYYY-MM-DD
+                                end_date_str = f"{end_date_str[:4]}-{end_date_str[4:6]}-{end_date_str[6:8]}"
+                            end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
+                        except ValueError:
+                            # If date conversion fails, leave as None
+                            pass
+                            
+                    ann = AnnouncementNew(
+                        pbanc_sn=serial_number,
+                        biz_pbanc_nm=item.get("biz_pbanc_nm", "") or "",
+                        pbanc_ctnt=item.get("pbanc_ctnt", "") or "",
+                        supt_biz_clsfc=item.get("supt_biz_clsfc", "") or "",
+                        pbanc_rcpt_bgng_dt=start_date,
+                        pbanc_rcpt_end_dt=end_date,
+                        aply_trgt_ctnt=item.get("aply_trgt_ctnt", "") or "",
+                        aply_excl_trgt_ctnt=item.get("aply_excl_trgt_ctnt", "") or "",
+                        supt_regin=item.get("supt_regin", "") or "",
+                        pbanc_ntrp_nm=item.get("pbanc_ntrp_nm", "") or "",
+                        sprv_inst=item.get("sprv_inst", "") or "",
+                        detl_pg_url=item.get("detl_pg_url", "") or "",
+                        aply_trgt=item.get("aply_trgt", "") or "",
+                        biz_enyy=item.get("biz_enyy", "") or "",
+                        biz_trgt_age=item.get("biz_trgt_age", "") or "",
+                        intg_pbanc_biz_nm=item.get("intg_pbanc_biz_nm", "") or ""
+                    )
+                    ann.save()
+                    saved_new_announcements.append(ann)
+            
+            # Count of new saved announcements
+            new_count = len(saved_new_announcements)
             
             # Update context with results
             context.update({
-                'filtered_announcements': filtered_announcements,
+                'filtered_announcements': saved_new_announcements,
+                'filtered_serial_numbers': filtered_serial_numbers,
                 'total_count': total_count,
                 'new_count': new_count,
-                'filtered_count': len(filtered_announcements),
+                'filtered_count': len(saved_new_announcements),
             })
             
             return render(request, self.template_name, context)
