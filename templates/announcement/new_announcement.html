@@ -2,7 +2,51 @@
 
 {% block title %}새 공고 - 사슴{% endblock %}
 
+{% block extra_css %}
+<style>
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s, visibility 0.3s;
+    }
+    
+    .loading-overlay.active {
+        opacity: 1;
+        visibility: visible;
+    }
+    
+    .spinner {
+        width: 50px;
+        height: 50px;
+        border: 5px solid #f3f3f3;
+        border-top: 5px solid #3498db;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay" data-is-processing="{% if is_processing|default:False %}true{% else %}false{% endif %}">
+    <div class="spinner"></div>
+</div>
+
 <div class="row mb-4">
     <div class="col-12">
         <h2>새 공고</h2>
@@ -12,7 +56,7 @@
 
 <div class="card mb-4">
     <div class="card-header">
-        <h5 class="card-title mb-0">공고 가져오기 및 필터링</h5>
+        <h5 class="card-title mb-0">공고 조회</h5>
     </div>
     <div class="card-body">
         <form method="post" id="fetchForm">
@@ -67,7 +111,7 @@
                 <div class="form-text">지원되는 AI 모델 중 하나를 선택하세요</div>
             </div>
             
-            <button type="submit" class="btn btn-primary" id="fetchButton">가져오기 및 필터링</button>
+            <button type="submit" class="btn btn-primary" id="fetchButton">조회</button>
         </form>
     </div>
 </div>
@@ -77,12 +121,12 @@
     <p class="mb-0">
         API에서 <strong>{{ total_count }}</strong>개의 공고를 발견했습니다.
         {% if new_count > 0 %}
-            <strong>{{ new_count }}</strong>개의 새 공고가 데이터베이스에 저장되었습니다.
+            <strong>{{ new_count }}</strong>개의 공고가 필터링 조건과 일치합니다.
         {% else %}
             새로 저장된 공고가 없습니다 (모두 이미 데이터베이스에 존재).
         {% endif %}
         {% if filtered_count is not None %}
-            <strong>{{ filtered_count }}</strong>개의 공고가 필터링 조건과 일치합니다.
+            <strong>{{ filtered_count }}</strong>개의 새 공고가 데이터베이스에 저장되었습니다.
         {% endif %}
     </p>
 </div>
@@ -270,7 +314,21 @@
 {% block extra_js %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Disable the fetch button for 10 seconds after submission
+        // Loading overlay
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        
+        // Check for processing state from data attribute
+        const isProcessing = loadingOverlay.getAttribute('data-is-processing') === 'true';
+        
+        if (isProcessing) {
+            // If we're in processing state, keep the overlay visible
+            loadingOverlay.classList.add('active');
+        } else {
+            // Otherwise make sure it's hidden
+            loadingOverlay.classList.remove('active');
+        }
+        
+        // Disable the fetch button and show overlay after submission
         const form = document.getElementById('fetchForm');
         const fetchButton = document.getElementById('fetchButton');
         
@@ -280,10 +338,11 @@
                     fetchButton.disabled = true;
                     fetchButton.innerHTML = '처리 중...';
                     
-                    setTimeout(function() {
-                        fetchButton.disabled = false;
-                        fetchButton.innerHTML = '가져오기 및 필터링';
-                    }, 10000);
+                    // Show loading overlay
+                    loadingOverlay.classList.add('active');
+                    
+                    // We don't need the timeout to re-enable the button
+                    // as the page will reload with fresh state
                 }
             });
         }

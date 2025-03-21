@@ -54,6 +54,7 @@ class NewAnnouncementView(View):
             ('gemini-2.0-flash-lite', 'Gemini - 2.0 Flash-Lite'),
         ]
         
+        # Set is_processing flag to true initially
         context = {
             'ai_models': ai_models,
             'user_condition': user_condition,
@@ -61,6 +62,7 @@ class NewAnnouncementView(View):
             'region': region,
             'startup_period': startup_period,
             'target_age': target_age,
+            'is_processing': True,  # Flag to indicate processing is happening
         }
         
         try:
@@ -185,6 +187,7 @@ class NewAnnouncementView(View):
                 'total_count': total_count,
                 'new_count': new_count,
                 'filtered_count': len(saved_new_announcements),
+                'is_processing': False,  # Processing is now complete
             })
             
             return render(request, self.template_name, context)
