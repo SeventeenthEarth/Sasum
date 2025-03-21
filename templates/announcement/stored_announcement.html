@@ -1,0 +1,488 @@
+{% extends 'base.html' %}
+
+{% block title %}저장된 공고 - 사슴{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2>저장된 공고</h2>
+        <p class="text-muted">저장된 공고를 필터링하고 관리하세요</p>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="card-title mb-0">필터 옵션</h5>
+    </div>
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-8">
+                <label for="keyword" class="form-label">검색어</label>
+                <input type="text" class="form-control" id="keyword" name="keyword" value="{{ keyword }}" placeholder="전체에서 검색">
+            </div>
+            
+            <div class="col-md-4">
+                <label for="order_by" class="form-label">정렬</label>
+                <select class="form-select" id="order_by" name="order_by">
+                    <option value="name_asc" {% if order_by == 'name_asc' %}selected{% endif %}>이름 (오름차순)</option>
+                    <option value="name_desc" {% if order_by == 'name_desc' %}selected{% endif %}>이름 (내림차순)</option>
+                    <option value="end_date_asc" {% if order_by == 'end_date_asc' %}selected{% endif %}>접수 종료일 (오래된순)</option>
+                    <option value="end_date_desc" {% if order_by == 'end_date_desc' %}selected{% endif %}>접수 종료일 (최신순)</option>
+                    <option value="start_date_asc" {% if order_by == 'start_date_asc' %}selected{% endif %}>접수 시작일 (오래된순)</option>
+                    <option value="start_date_desc" {% if order_by == 'start_date_desc' %}selected{% endif %}>접수 시작일 (최신순)</option>
+                    <option value="reg_date_asc" {% if order_by == 'reg_date_asc' %}selected{% endif %}>등록일 (오래된순)</option>
+                    <option value="reg_date_desc" {% if order_by == 'reg_date_desc' %}selected{% endif %}>등록일 (최신순)</option>
+                </select>
+            </div>
+            
+            <div class="col-12 mt-3">
+                <label class="form-label">상태 필터</label>
+                <div class="d-flex flex-wrap gap-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="status_filter" id="status_before" value="before" {% if 'before' in status_filter %}checked{% endif %}>
+                        <label class="form-check-label" for="status_before">
+                            <span class="badge bg-warning">접수전</span>
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="status_filter" id="status_ongoing" value="ongoing" {% if 'ongoing' in status_filter %}checked{% endif %}>
+                        <label class="form-check-label" for="status_ongoing">
+                            <span class="badge bg-success">접수중</span>
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="status_filter" id="status_closed" value="closed" {% if 'closed' in status_filter %}checked{% endif %}>
+                        <label class="form-check-label" for="status_closed">
+                            <span class="badge bg-secondary">마감</span>
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="status_filter" id="status_interested" value="interested" {% if 'interested' in status_filter %}checked{% endif %}>
+                        <label class="form-check-label" for="status_interested">
+                            <span class="badge bg-info">관심있음</span>
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="status_filter" id="status_applied" value="applied" {% if 'applied' in status_filter %}checked{% endif %}>
+                        <label class="form-check-label" for="status_applied">
+                            <span class="badge bg-primary">신청함</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-12 mt-3">
+                <button type="submit" class="btn btn-primary">필터 적용</button>
+                <a href="{% url 'announcement:stored-announcement' %}" class="btn btn-outline-secondary">초기화</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if announcements %}
+<div class="alert alert-info">
+    필터 조건에 맞는 공고 <strong>{{ count }}</strong>개를 찾았습니다.
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">저장된 공고</h5>
+        <form method="post" action="{% url 'announcement:delete-all-announcements' %}" class="mb-0" onsubmit="return confirm('정말로 모든 공고를 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">모두 지우기</button>
+        </form>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover table-striped mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>사업<br>공고명</th>
+                        <th>접수<br>시작일</th>
+                        <th>접수<br>종료일</th>
+                        <th>남은<br>일수</th>
+                        <th>등록<br>일자</th>
+                        <th>상태</th>
+                        <th>전체<br>보기</th>
+                        <th>원본<br>보기</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for announcement in announcements %}
+                    <tr>
+                        <td>
+                            <strong>{{ announcement.biz_pbanc_nm }}</strong>
+                        </td>
+                        <td>{{ announcement.pbanc_rcpt_bgng_dt|date:"Y-m-d"|default:"정보 없음" }}</td>
+                        <td>{{ announcement.pbanc_rcpt_end_dt|date:"Y-m-d"|default:"정보 없음" }}</td>
+                        <td>{{ announcement.days_remaining|default:"-" }}</td>
+                        <td>{{ announcement.created_at|date:"Y-m-d" }}</td>
+                        <td>
+                            <div class="d-flex flex-column">
+                                {% if announcement.pbanc_rcpt_bgng_dt and announcement.pbanc_rcpt_end_dt %}
+                                    {% now "Ymd" as today_int %}
+                                    {% with start=announcement.pbanc_rcpt_bgng_dt|date:"Ymd" end=announcement.pbanc_rcpt_end_dt|date:"Ymd" %}
+                                    {% if today_int < start %}
+                                        <span class="badge bg-warning mb-1">접수전</span>
+                                    {% elif today_int > end %}
+                                        <span class="badge bg-secondary mb-1">마감</span>
+                                    {% else %}
+                                        <span class="badge bg-success mb-1">접수중</span>
+                                    {% endif %}
+                                    {% endwith %}
+                                {% else %}
+                                    <span class="badge bg-secondary mb-1">정보 없음</span>
+                                {% endif %}
+                                
+                                {% if announcement.is_interested %}
+                                    <span class="badge bg-info mb-1">관심있음</span>
+                                {% endif %}
+                                {% if announcement.is_applied %}
+                                    <span class="badge bg-primary">신청함</span>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-outline-info" 
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#announcementModal{{ forloop.counter }}">
+                                전체<br>보기
+                            </button>
+                            
+                            <!-- Modal for full announcement content -->
+                            <div class="modal fade" id="announcementModal{{ forloop.counter }}" tabindex="-1" 
+                                 aria-labelledby="announcementModalLabel{{ forloop.counter }}" aria-hidden="true">
+                                <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="announcementModalLabel{{ forloop.counter }}">
+                                                {{ announcement.biz_pbanc_nm }}
+                                            </h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <div class="row mb-3">
+                                                <div class="col-md-6">
+                                                    <h6>공고기업명</h6>
+                                                    <p>{{ announcement.pbanc_ntrp_nm|default:"정보 없음" }}</p>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <h6>주관기관</h6>
+                                                    <p>{{ announcement.sprv_inst|default:"정보 없음" }}</p>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="row mb-3">
+                                                <div class="col-md-6">
+                                                    <h6>지원사업분류</h6>
+                                                    <p>{{ announcement.supt_biz_clsfc|default:"정보 없음" }}</p>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <h6>지원지역</h6>
+                                                    <p>{{ announcement.supt_regin|default:"정보 없음" }}</p>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="row mb-3">
+                                                <div class="col-md-6">
+                                                    <h6>접수기간</h6>
+                                                    <p>{{ announcement.pbanc_rcpt_bgng_dt|date:"Y-m-d"|default:"정보 없음" }} ~ {{ announcement.pbanc_rcpt_end_dt|date:"Y-m-d"|default:"정보 없음" }}</p>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <h6>남은 기간</h6>
+                                                    <p>{{ announcement.days_remaining|default:"-" }}</p>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="row mb-3">
+                                                <div class="col-md-6">
+                                                    <h6>사업업력</h6>
+                                                    <p>{{ announcement.biz_enyy|default:"정보 없음" }}</p>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="row mb-3">
+                                                <div class="col-md-6">
+                                                    <h6>사업대상연령</h6>
+                                                    <p>{{ announcement.biz_trgt_age|default:"정보 없음" }}</p>
+                                                </div>
+                                            </div>
+                                            
+                                            <hr>
+                                            
+                                            <h6>신청대상</h6>
+                                            <div class="mb-3">{{ announcement.aply_trgt|default:"정보 없음"|linebreaks }}</div>
+                                            
+                                            <h6>신청제외대상</h6>
+                                            <div class="mb-3">{{ announcement.aply_excl_trgt_ctnt|default:"정보 없음"|linebreaks }}</div>
+                                            
+                                            <h6>공고내용</h6>
+                                            <div class="mb-3">{{ announcement.pbanc_ctnt|default:"정보 없음"|linebreaks }}</div>
+                                            
+                                            <h6>등록일자</h6>
+                                            <div class="mb-3">{{ announcement.created_at|date:"Y-m-d H:i" }}</div>
+                                        </div>
+                                        <div class="modal-footer d-flex flex-column align-items-start w-100">
+                                            <div class="d-flex mb-3 gap-4 w-100">
+                                                <!-- Status management -->
+                                                <div class="form-check form-check-inline">
+                                                    <input class="form-check-input status-checkbox" type="checkbox" 
+                                                           id="modal_is_interested_{{ forloop.counter }}" 
+                                                           data-type="is_interested"
+                                                           data-model-type="{{ announcement.model_type }}"
+                                                           {% if announcement.model_type == 'old' %}
+                                                           data-announcement-id="{{ announcement.pk }}"
+                                                           {% else %}
+                                                           data-announcement-id="{{ announcement.pbanc_sn }}"
+                                                           {% endif %}
+                                                           {% if announcement.is_interested %}checked{% endif %}>
+                                                    <label class="form-check-label" for="modal_is_interested_{{ forloop.counter }}">
+                                                        관심있음
+                                                    </label>
+                                                </div>
+                                                
+                                                <div class="form-check form-check-inline">
+                                                    <input class="form-check-input status-checkbox" type="checkbox" 
+                                                           id="modal_is_applied_{{ forloop.counter }}"
+                                                           data-type="is_applied"
+                                                           data-model-type="{{ announcement.model_type }}"
+                                                           {% if announcement.model_type == 'old' %}
+                                                           data-announcement-id="{{ announcement.pk }}"
+                                                           {% else %}
+                                                           data-announcement-id="{{ announcement.pbanc_sn }}"
+                                                           {% endif %}
+                                                           {% if announcement.is_applied %}checked{% endif %}>
+                                                    <label class="form-check-label" for="modal_is_applied_{{ forloop.counter }}">
+                                                        신청함
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Memo form -->
+                                            <form method="post" action="{% url 'announcement:update-announcement' %}" class="w-100 mb-3">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="model_type" value="{{ announcement.model_type }}">
+                                                {% if announcement.model_type == 'old' %}
+                                                    <input type="hidden" name="biz_pbanc_nm" value="{{ announcement.pk }}">
+                                                {% else %}
+                                                    <input type="hidden" name="pbanc_sn" value="{{ announcement.pbanc_sn }}">
+                                                {% endif %}
+                                                <input type="hidden" name="is_interested" value="{% if announcement.is_interested %}on{% endif %}">
+                                                <input type="hidden" name="is_applied" value="{% if announcement.is_applied %}on{% endif %}">
+                                                
+                                                <div class="form-group">
+                                                    <label for="memo_{{ forloop.counter }}">메모</label>
+                                                    <textarea class="form-control" id="memo_{{ forloop.counter }}" 
+                                                              name="memo" rows="2">{{ announcement.memo }}</textarea>
+                                                </div>
+                                                <div class="mt-2">
+                                                    <button type="submit" class="btn btn-success">메모 저장</button>
+                                                </div>
+                                            </form>
+                                            
+                                            <div class="d-flex justify-content-between w-100">
+                                                {% if announcement.detl_pg_url %}
+                                                    <a href="{{ announcement.detl_pg_url }}" class="btn btn-primary" target="_blank">원본<br>보기</a>
+                                                {% endif %}
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            {% if announcement.detl_pg_url %}
+                                <a href="{{ announcement.detl_pg_url }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                                    원본<br>보기
+                                </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="alert alert-warning">
+    <p class="mb-0">공고를 찾을 수 없습니다. 필터를 조정하거나 새 공고를 가져오세요.</p>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Remove auto-submit for checkboxes to allow multiple selections
+    // We'll rely on the "필터 적용" button for submission
+
+    // Add event listeners to all status checkboxes
+    document.querySelectorAll('.status-checkbox').forEach(function(checkbox) {
+        checkbox.addEventListener('change', function() {
+            const modelType = this.getAttribute('data-model-type');
+            const announcementId = this.getAttribute('data-announcement-id');
+            const statusType = this.getAttribute('data-type');
+            const isChecked = this.checked;
+            
+            // Prepare data for AJAX request
+            const formData = new FormData();
+            formData.append('model_type', modelType);
+            
+            if (modelType === 'old') {
+                formData.append('biz_pbanc_nm', announcementId);
+            } else {
+                formData.append('pbanc_sn', announcementId);
+            }
+            
+            // Add the status that was changed
+            if (statusType === 'is_interested') {
+                if (isChecked) {
+                    formData.append('is_interested', 'on');
+                }
+                
+                // Preserve the current value of the other checkbox
+                const appliedCheckbox = document.querySelector(`input[data-type="is_applied"][data-announcement-id="${announcementId}"]`);
+                if (appliedCheckbox && appliedCheckbox.checked) {
+                    formData.append('is_applied', 'on');
+                }
+            } else {
+                if (isChecked) {
+                    formData.append('is_applied', 'on');
+                }
+                
+                // Preserve the current value of the other checkbox
+                const interestedCheckbox = document.querySelector(`input[data-type="is_interested"][data-announcement-id="${announcementId}"]`);
+                if (interestedCheckbox && interestedCheckbox.checked) {
+                    formData.append('is_interested', 'on');
+                }
+            }
+            
+            // Add CSRF token
+            const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
+            formData.append('csrfmiddlewaretoken', csrfToken);
+            
+            // Keep the current memo value
+            const memoInputs = document.querySelectorAll(`textarea[name="memo"]`);
+            let memoValue = '';
+            
+            for (let input of memoInputs) {
+                if (input.closest('form').querySelector('input[value="' + announcementId + '"]')) {
+                    memoValue = input.value;
+                    break;
+                }
+            }
+            
+            formData.append('memo', memoValue);
+            
+            // Send AJAX request
+            fetch("{% url 'announcement:update-announcement' %}", {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Update UI to reflect the change (e.g., show a toast notification)
+                if (data.success) {
+                    // Update the table badge
+                    updateTableStatus(announcementId, statusType, isChecked);
+                }
+            })
+            .catch(error => {
+                console.error('Error updating status:', error);
+                // Revert checkbox state on error
+                this.checked = !isChecked;
+                alert('상태 업데이트 중 오류가 발생했습니다.');
+            });
+        });
+    });
+    
+    // Function to update table status badges
+    function updateTableStatus(announcementId, statusType, isChecked) {
+        // Find the table row with the corresponding announcement
+        const tableRows = document.querySelectorAll('tbody tr');
+        
+        // Loop through all rows to find the matching announcement
+        for (let i = 0; i < tableRows.length; i++) {
+            const row = tableRows[i];
+            // The counter in the modal ID is 1-based (from forloop.counter in the template)
+            const rowIndex = i + 1;
+            const modalId = `announcementModal${rowIndex}`;
+            
+            // Find the button that opens the modal for this announcement
+            const modalButton = row.querySelector(`button[data-bs-target="#${modalId}"]`);
+            
+            if (modalButton) {
+                // Now check if this is the announcement we're looking for
+                const modal = document.getElementById(modalId);
+                if (!modal) continue;
+                
+                // Check if this modal contains the announcement we're updating
+                const announcementIdInputs = modal.querySelectorAll('input[value="' + announcementId + '"]');
+                if (announcementIdInputs.length === 0) continue;
+                
+                // We found the right row, now update the status cell
+                const statusCell = row.querySelector('td:nth-child(6)'); // 6th column is status
+                if (statusCell) {
+                    // Handle interested status change
+                    if (statusType === 'is_interested') {
+                        const interestedBadge = statusCell.querySelector('.badge.bg-info');
+                        if (isChecked && !interestedBadge) {
+                            // Add interested badge
+                            const badge = document.createElement('span');
+                            badge.className = 'badge bg-info mb-1';
+                            badge.textContent = '관심있음';
+                            statusCell.querySelector('.d-flex').appendChild(badge);
+                        } else if (!isChecked && interestedBadge) {
+                            // Remove interested badge
+                            interestedBadge.remove();
+                        }
+                    } 
+                    // Handle applied status change
+                    else if (statusType === 'is_applied') {
+                        const appliedBadge = statusCell.querySelector('.badge.bg-primary');
+                        if (isChecked && !appliedBadge) {
+                            // Add applied badge
+                            const badge = document.createElement('span');
+                            badge.className = 'badge bg-primary';
+                            badge.textContent = '신청함';
+                            statusCell.querySelector('.d-flex').appendChild(badge);
+                        } else if (!isChecked && appliedBadge) {
+                            // Remove applied badge
+                            appliedBadge.remove();
+                        }
+                    }
+                }
+                
+                // Also update the hidden form fields in the modal
+                const form = modal.querySelector('form');
+                if (form) {
+                    if (statusType === 'is_interested') {
+                        const hiddenField = form.querySelector('input[name="is_interested"]');
+                        if (hiddenField) {
+                            hiddenField.value = isChecked ? 'on' : '';
+                        }
+                    } else if (statusType === 'is_applied') {
+                        const hiddenField = form.querySelector('input[name="is_applied"]');
+                        if (hiddenField) {
+                            hiddenField.value = isChecked ? 'on' : '';
+                        }
+                    }
+                }
+                
+                break;
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

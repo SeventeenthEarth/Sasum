@@ -1,0 +1,436 @@
+{% extends 'base.html' %}
+
+{% block title %}새 공고 - 사슴{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2>새 공고</h2>
+        <p class="text-muted">공공데이터 포털에서 새로운 공고를 가져오고 AI로 필터링하세요</p>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="card-title mb-0">공고 가져오기 및 필터링</h5>
+    </div>
+    <div class="card-body">
+        <form method="post" id="fetchForm">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label for="user_condition" class="form-label">필터링 조건</label>
+                <input type="text" class="form-control" id="user_condition" name="user_condition" 
+                       placeholder="예: AI 기술 스타트업, 5천만원 이상 자금 지원" 
+                       value="{{ user_condition }}" required>
+                <div class="form-text">어떤 종류의 공고를 찾고 있는지 설명하세요</div>
+            </div>
+            
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label for="region" class="form-label">지역</label>
+                    <input type="text" class="form-control" id="region" name="region" 
+                           placeholder="ex: 서울, 부산, 경기도" value="{{ region }}">
+                    <div class="form-text">비워두면 전체 지역 검색</div>
+                </div>
+                
+                <div class="col-md-4">
+                    <label for="startup_period" class="form-label">창업기간</label>
+                    <select class="form-select" id="startup_period" name="startup_period">
+                        <option value="" {% if startup_period == "" %}selected{% endif %}>전체</option>
+                        <option value="7년미만" {% if startup_period == "7년미만" %}selected{% endif %}>7년미만</option>
+                        <option value="5년미만" {% if startup_period == "5년미만" %}selected{% endif %}>5년미만</option>
+                        <option value="3년미만" {% if startup_period == "3년미만" %}selected{% endif %}>3년미만</option>
+                        <option value="2년미만" {% if startup_period == "2년미만" %}selected{% endif %}>2년미만</option>
+                        <option value="1년미만" {% if startup_period == "1년미만" %}selected{% endif %}>1년미만</option>
+                        <option value="예비창업자" {% if startup_period == "예비창업자" %}selected{% endif %}>예비창업자</option>
+                    </select>
+                </div>
+                
+                <div class="col-md-4">
+                    <label for="target_age" class="form-label">대상연령</label>
+                    <select class="form-select" id="target_age" name="target_age">
+                        <option value="" {% if target_age == "" %}selected{% endif %}>전체</option>
+                        <option value="만 20세 미만" {% if target_age == "만 20세 미만" %}selected{% endif %}>만 20세 미만</option>
+                        <option value="만 20세 이상 ~ 만 39세 이하" {% if target_age == "만 20세 이상 ~ 만 39세 이하" %}selected{% endif %}>만 20세 이상 ~ 만 39세 이하</option>
+                        <option value="만 40세 이상" {% if target_age == "만 40세 이상" %}selected{% endif %}>만 40세 이상</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="selected_platform" class="form-label">AI 플랫폼</label>
+                <select class="form-select" id="selected_platform" name="selected_platform">
+                    {% for platform_id, platform_name in ai_platforms %}
+                        <option value="{{ platform_id }}" {% if selected_platform == platform_id %}selected{% endif %}>{{ platform_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="mb-3">
+                <label for="selected_model" class="form-label">AI 모델</label>
+                <div id="openai-models" class="model-selection" {% if selected_platform != 'openai' %}style="display:none"{% endif %}>
+                    <select class="form-select" name="selected_model" id="openai-model-select">
+                        {% for model_id, model_name in openai_models %}
+                            <option value="{{ model_id }}" {% if selected_model == model_id %}selected{% endif %}>{{ model_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div id="claude-models" class="model-selection" {% if selected_platform != 'claude' %}style="display:none"{% endif %}>
+                    <select class="form-select" name="selected_model" id="claude-model-select">
+                        {% for model_id, model_name in claude_models %}
+                            <option value="{{ model_id }}" {% if selected_model == model_id %}selected{% endif %}>{{ model_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div id="gemini-models" class="model-selection" {% if selected_platform != 'gemini' %}style="display:none"{% endif %}>
+                    <select class="form-select" name="selected_model" id="gemini-model-select">
+                        {% for model_id, model_name in gemini_models %}
+                            <option value="{{ model_id }}" {% if selected_model == model_id %}selected{% endif %}>{{ model_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            
+            <button type="submit" class="btn btn-primary" id="fetchButton">가져오기 및 필터링</button>
+        </form>
+    </div>
+</div>
+
+{% if total_count is not None %}
+<div class="alert alert-info">
+    <p class="mb-0">
+        API에서 <strong>{{ total_count }}</strong>개의 공고를 발견했습니다.
+        {% if new_count > 0 %}
+            <strong>{{ new_count }}</strong>개의 새 공고가 데이터베이스에 저장되었습니다.
+        {% else %}
+            새로 저장된 공고가 없습니다 (모두 이미 데이터베이스에 존재).
+        {% endif %}
+        {% if filtered_count is not None %}
+            <strong>{{ filtered_count }}</strong>개의 공고가 필터링 조건과 일치합니다.
+        {% endif %}
+    </p>
+</div>
+{% endif %}
+
+{% if filtered_announcements %}
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">필터링된 공고</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover table-striped mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>사업공고명</th>
+                        <th>접수시작일</th>
+                        <th>접수종료일</th>
+                        <th>등록일자</th>
+                        <th>전체보기</th>
+                        <th>원본보기</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for announcement in filtered_announcements %}
+                    <tr>
+                        <td>
+                            <strong>{{ announcement.biz_pbanc_nm }}</strong>
+                        </td>
+                        <td>{{ announcement.pbanc_rcpt_bgng_dt|date:"Y-m-d"|default:"정보 없음" }}</td>
+                        <td>{{ announcement.pbanc_rcpt_end_dt|date:"Y-m-d"|default:"정보 없음" }}</td>
+                        <td>{{ announcement.created_at|date:"Y-m-d" }}</td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-outline-info" 
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#announcementModal{{ forloop.counter }}">
+                                전체<br>보기
+                            </button>
+                            
+                            <!-- Modal for full announcement content -->
+                            <div class="modal fade" id="announcementModal{{ forloop.counter }}" tabindex="-1" 
+                                 aria-labelledby="announcementModalLabel{{ forloop.counter }}" aria-hidden="true">
+                                <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="announcementModalLabel{{ forloop.counter }}">
+                                                {{ announcement.biz_pbanc_nm }}
+                                            </h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <div class="row mb-3">
+                                                <div class="col-md-6">
+                                                    <h6>공고기업명</h6>
+                                                    <p>{{ announcement.pbanc_ntrp_nm|default:"정보 없음" }}</p>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <h6>주관기관</h6>
+                                                    <p>{{ announcement.sprv_inst|default:"정보 없음" }}</p>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="row mb-3">
+                                                <div class="col-md-6">
+                                                    <h6>지원사업분류</h6>
+                                                    <p>{{ announcement.supt_biz_clsfc|default:"정보 없음" }}</p>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <h6>지원지역</h6>
+                                                    <p>{{ announcement.supt_regin|default:"정보 없음" }}</p>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="row mb-3">
+                                                <div class="col-md-6">
+                                                    <h6>접수기간</h6>
+                                                    <p>{{ announcement.pbanc_rcpt_bgng_dt|date:"Y-m-d"|default:"정보 없음" }} ~ {{ announcement.pbanc_rcpt_end_dt|date:"Y-m-d"|default:"정보 없음" }}</p>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <h6>사업업력</h6>
+                                                    <p>{{ announcement.biz_enyy|default:"정보 없음" }}</p>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="row mb-3">
+                                                <div class="col-md-6">
+                                                    <h6>사업대상연령</h6>
+                                                    <p>{{ announcement.biz_trgt_age|default:"정보 없음" }}</p>
+                                                </div>
+                                            </div>
+                                            
+                                            <hr>
+                                            
+                                            <h6>신청대상</h6>
+                                            <div class="mb-3">{{ announcement.aply_trgt|default:"정보 없음"|linebreaks }}</div>
+                                            
+                                            <h6>신청제외대상</h6>
+                                            <div class="mb-3">{{ announcement.aply_excl_trgt_ctnt|default:"정보 없음"|linebreaks }}</div>
+                                            
+                                            <h6>공고내용</h6>
+                                            <div class="mb-3">{{ announcement.pbanc_ctnt|default:"정보 없음"|linebreaks }}</div>
+                                            
+                                            <h6>등록일자</h6>
+                                            <div class="mb-3">{{ announcement.created_at|date:"Y-m-d H:i" }}</div>
+                                        </div>
+                                        <div class="modal-footer d-flex flex-column align-items-start w-100">
+                                            <div class="d-flex mb-3 gap-4 w-100">
+                                                <!-- Status management -->
+                                                <div class="form-check form-check-inline">
+                                                    <input class="form-check-input status-checkbox" type="checkbox" 
+                                                           id="modal_is_interested_{{ forloop.counter }}" 
+                                                           data-type="is_interested"
+                                                           data-model-type="new"
+                                                           data-announcement-id="{{ announcement.pbanc_sn }}"
+                                                           {% if announcement.is_interested %}checked{% endif %}>
+                                                    <label class="form-check-label" for="modal_is_interested_{{ forloop.counter }}">
+                                                        관심있음
+                                                    </label>
+                                                </div>
+                                                
+                                                <div class="form-check form-check-inline">
+                                                    <input class="form-check-input status-checkbox" type="checkbox" 
+                                                           id="modal_is_applied_{{ forloop.counter }}"
+                                                           data-type="is_applied"
+                                                           data-model-type="new"
+                                                           data-announcement-id="{{ announcement.pbanc_sn }}"
+                                                           {% if announcement.is_applied %}checked{% endif %}>
+                                                    <label class="form-check-label" for="modal_is_applied_{{ forloop.counter }}">
+                                                        신청함
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Memo form -->
+                                            <form method="post" action="{% url 'announcement:update-announcement' %}" class="w-100 mb-3">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="model_type" value="new">
+                                                <input type="hidden" name="pbanc_sn" value="{{ announcement.pbanc_sn }}">
+                                                <input type="hidden" name="is_interested" value="{% if announcement.is_interested %}on{% endif %}">
+                                                <input type="hidden" name="is_applied" value="{% if announcement.is_applied %}on{% endif %}">
+                                                
+                                                <div class="form-group">
+                                                    <label for="memo_{{ forloop.counter }}">메모</label>
+                                                    <textarea class="form-control" id="memo_{{ forloop.counter }}" 
+                                                              name="memo" rows="2">{{ announcement.memo }}</textarea>
+                                                </div>
+                                                <div class="mt-2">
+                                                    <button type="submit" class="btn btn-success">메모 저장</button>
+                                                </div>
+                                            </form>
+                                            
+                                            <div class="d-flex justify-content-between w-100">
+                                                {% if announcement.detl_pg_url %}
+                                                    <a href="{{ announcement.detl_pg_url }}" class="btn btn-primary" target="_blank">원본<br>보기</a>
+                                                {% endif %}
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            {% if announcement.detl_pg_url %}
+                                <a href="{{ announcement.detl_pg_url }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                                    원본<br>보기
+                                </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% elif filtered_announcements is not None and filtered_announcements|length == 0 %}
+<div class="alert alert-warning">
+    <p class="mb-0">필터링 조건과 일치하는 공고가 없습니다. 조건을 조정해 보세요.</p>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Handle model selection based on platform
+    document.addEventListener('DOMContentLoaded', function() {
+        const platformSelect = document.getElementById('selected_platform');
+        const modelSelections = document.querySelectorAll('.model-selection');
+        
+        function updateModelSelectionVisibility() {
+            const platform = platformSelect.value;
+            
+            // Hide all model selections
+            modelSelections.forEach(selection => {
+                selection.style.display = 'none';
+            });
+            
+            // Show the appropriate model selection
+            document.getElementById(`${platform}-models`).style.display = 'block';
+        }
+        
+        if (platformSelect) {
+            platformSelect.addEventListener('change', updateModelSelectionVisibility);
+        }
+        
+        // Disable the fetch button for 10 seconds after submission
+        const form = document.getElementById('fetchForm');
+        const fetchButton = document.getElementById('fetchButton');
+        
+        if (form) {
+            form.addEventListener('submit', function() {
+                if (fetchButton) {
+                    fetchButton.disabled = true;
+                    fetchButton.innerHTML = '처리 중...';
+                    
+                    setTimeout(function() {
+                        fetchButton.disabled = false;
+                        fetchButton.innerHTML = '가져오기 및 필터링';
+                    }, 10000);
+                }
+            });
+        }
+        
+        // Add event listeners to all status checkboxes
+        document.querySelectorAll('.status-checkbox').forEach(function(checkbox) {
+            checkbox.addEventListener('change', function() {
+                const modelType = this.getAttribute('data-model-type');
+                const announcementId = this.getAttribute('data-announcement-id');
+                const statusType = this.getAttribute('data-type');
+                const isChecked = this.checked;
+                
+                // Prepare data for AJAX request
+                const formData = new FormData();
+                formData.append('model_type', modelType);
+                
+                if (modelType === 'old') {
+                    formData.append('biz_pbanc_nm', announcementId);
+                } else {
+                    formData.append('pbanc_sn', announcementId);
+                }
+                
+                // Add the status that was changed
+                if (statusType === 'is_interested') {
+                    if (isChecked) {
+                        formData.append('is_interested', 'on');
+                    }
+                    
+                    // Preserve the current value of the other checkbox
+                    const appliedCheckbox = document.querySelector(`input[data-type="is_applied"][data-announcement-id="${announcementId}"]`);
+                    if (appliedCheckbox && appliedCheckbox.checked) {
+                        formData.append('is_applied', 'on');
+                    }
+                } else {
+                    if (isChecked) {
+                        formData.append('is_applied', 'on');
+                    }
+                    
+                    // Preserve the current value of the other checkbox
+                    const interestedCheckbox = document.querySelector(`input[data-type="is_interested"][data-announcement-id="${announcementId}"]`);
+                    if (interestedCheckbox && interestedCheckbox.checked) {
+                        formData.append('is_interested', 'on');
+                    }
+                }
+                
+                // Add CSRF token
+                const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
+                formData.append('csrfmiddlewaretoken', csrfToken);
+                
+                // Keep the current memo value
+                const memoInputs = document.querySelectorAll(`textarea[name="memo"]`);
+                let memoValue = '';
+                
+                for (let input of memoInputs) {
+                    if (input.closest('form').querySelector('input[value="' + announcementId + '"]')) {
+                        memoValue = input.value;
+                        break;
+                    }
+                }
+                
+                formData.append('memo', memoValue);
+                
+                // Send AJAX request
+                fetch("{% url 'announcement:update-announcement' %}", {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Update UI to reflect the change (e.g., show a toast notification)
+                    if (data.success) {
+                        // Update the table badge
+                        updateTableStatus(announcementId, statusType, isChecked);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error updating status:', error);
+                    // Revert checkbox state on error
+                    this.checked = !isChecked;
+                    alert('상태 업데이트 중 오류가 발생했습니다.');
+                });
+            });
+        });
+        
+        // Function to update table status badges
+        function updateTableStatus(announcementId, statusType, isChecked) {
+            // Since the status columns are no longer in the table in new_announcement.html,
+            // we only need to update the checkboxes in the modal
+            const checkboxes = document.querySelectorAll(`.status-checkbox[data-announcement-id="${announcementId}"]`);
+            checkboxes.forEach(checkbox => {
+                if (checkbox.getAttribute('data-type') === statusType) {
+                    checkbox.checked = isChecked;
+                }
+            });
+        }
+    });
+</script>
+{% endblock %} 
