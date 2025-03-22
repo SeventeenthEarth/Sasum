@@ -7,6 +7,9 @@ import logging
 from django.utils import timezone
 from datetime import datetime
 from django.db.models import Q
+import json
+import requests
+from json.decoder import JSONDecodeError
 
 from .models import Announcement, AnnouncementNew
 from .utils.api_client import PublicDataAPIClient
@@ -482,5 +485,51 @@ def delete_all_announcements(request: HttpRequest) -> HttpResponse:
         except Exception as e:
             logger.exception("Error deleting all announcements: %s", str(e))
             messages.error(request, f"공고 삭제 중 오류 발생: {str(e)}")
+    
+    return redirect('announcement:stored-announcement')
+
+
+def delete_selected_announcements(request: HttpRequest) -> HttpResponse:
+    """Delete selected announcements from the database"""
+    if request.method == 'POST':
+        try:
+            # Get the JSON data from the form
+            selected_announcements_json = request.POST.get('selected_announcements', '[]')
+            selected_announcements = json.loads(selected_announcements_json)
+            
+            if not selected_announcements:
+                messages.warning(request, "선택된 공고가 없습니다")
+                return redirect('announcement:stored-announcement')
+            
+            # Separate old and new model IDs
+            old_ids = []
+            new_ids = []
+            
+            for announcement in selected_announcements:
+                if announcement['model_type'] == 'old':
+                    old_ids.append(announcement['id'])
+                else:
+                    new_ids.append(announcement['id'])
+            
+            deleted_count = 0
+            
+            with transaction.atomic():
+                # Delete old model announcements
+                if old_ids:
+                    deleted = Announcement.objects.filter(biz_pbanc_nm__in=old_ids).delete()[0]
+                    deleted_count += deleted
+                
+                # Delete new model announcements
+                if new_ids:
+                    deleted = AnnouncementNew.objects.filter(pbanc_sn__in=new_ids).delete()[0]
+                    deleted_count += deleted
+                
+                messages.success(request, f"{deleted_count}개의 선택한 공고가 삭제되었습니다")
+        
+        except JSONDecodeError:
+            messages.error(request, "선택된 공고 데이터 형식이 잘못되었습니다")
+        except Exception as e:
+            logger.exception("Error deleting selected announcements: %s", str(e))
+            messages.error(request, f"선택한 공고 삭제 중 오류 발생: {str(e)}")
     
     return redirect('announcement:stored-announcement')
