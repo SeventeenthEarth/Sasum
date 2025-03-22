@@ -13,6 +13,19 @@
         }
         .navbar {
             margin-bottom: 20px;
+            padding-top: 15px;
+            padding-bottom: 0;
+        }
+        .navbar-brand {
+            font-size: 2.5rem; /* Make the navbar brand (사슴) at least twice as large */
+            font-weight: bold;
+            padding-bottom: 5px;
+            margin-bottom: 0;
+        }
+        .nav-link {
+            padding-top: 15px;
+            padding-bottom: 5px;
+            margin-bottom: 0;
         }
         .message-container {
             position: fixed;
@@ -35,18 +48,18 @@
 <body>
     <div class="container">
         <nav class="navbar navbar-expand-lg navbar-light bg-light rounded">
-            <div class="container-fluid">
-                <a class="navbar-brand" href="{% url 'announcement:index' %}">사슴</a>
+            <div class="container-fluid align-items-end">
+                <a class="navbar-brand pb-0" href="{% url 'announcement:index' %}">사슴</a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
                 <div class="collapse navbar-collapse" id="navbarNav">
-                    <ul class="navbar-nav">
+                    <ul class="navbar-nav align-items-end">
                         <li class="nav-item">
-                            <a class="nav-link {% if request.resolver_match.url_name == 'stored-announcement' %}active{% endif %}" href="{% url 'announcement:stored-announcement' %}">저장된 공고</a>
+                            <a class="nav-link pb-0 {% if request.resolver_match.url_name == 'stored-announcement' %}active{% endif %}" href="{% url 'announcement:stored-announcement' %}">저장된 공고</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link {% if request.resolver_match.url_name == 'new-announcement' %}active{% endif %}" href="{% url 'announcement:new-announcement' %}">새 공고</a>
+                            <a class="nav-link pb-0 {% if request.resolver_match.url_name == 'new-announcement' %}active{% endif %}" href="{% url 'announcement:new-announcement' %}">새 공고</a>
                         </li>
                     </ul>
                 </div>
