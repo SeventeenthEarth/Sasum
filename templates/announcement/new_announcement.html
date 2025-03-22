@@ -108,7 +108,7 @@
                         <option value="{{ model_id }}" {% if selected_ai_model == model_id %}selected{% endif %}>{{ model_name }}</option>
                     {% endfor %}
                 </select>
-                <div class="form-text">지원되는 AI 모델 중 하나를 선택하세요</div>
+                <div class="form-text">지원되는 AI 모델 중 하나를 선택하세요. OpenAI가 더 정확하지만, Gemini가 가격이 절반입니다.</div>
             </div>
             
             <button type="submit" class="btn btn-primary" id="fetchButton">조회</button>
