@@ -413,8 +413,8 @@ def update_announcement(request: HttpRequest) -> HttpResponse:
         model_type = request.POST.get('model_type', '')
         serial_number = request.POST.get('pbanc_sn', '')
         name = request.POST.get('biz_pbanc_nm', '')
-        is_interested = 'is_interested' in request.POST
-        is_applied = 'is_applied' in request.POST
+        is_interested = request.POST.get('is_interested') == 'on'
+        is_applied = request.POST.get('is_applied') == 'on'
         memo = request.POST.get('memo', '')
         
         # Check if this is an AJAX request

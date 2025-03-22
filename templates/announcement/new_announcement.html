@@ -262,8 +262,12 @@
                                                 {% csrf_token %}
                                                 <input type="hidden" name="model_type" value="new">
                                                 <input type="hidden" name="pbanc_sn" value="{{ announcement.pbanc_sn }}">
-                                                <input type="hidden" name="is_interested" value="{% if announcement.is_interested %}on{% endif %}">
-                                                <input type="hidden" name="is_applied" value="{% if announcement.is_applied %}on{% endif %}">
+                                                {% if announcement.is_interested %}
+                                                    <input type="hidden" name="is_interested" value="on">
+                                                {% endif %}
+                                                {% if announcement.is_applied %}
+                                                    <input type="hidden" name="is_applied" value="on">
+                                                {% endif %}
                                                 
                                                 <div class="form-group">
                                                     <label for="memo_{{ forloop.counter }}">메모</label>

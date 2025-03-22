@@ -103,6 +103,7 @@
                         <th>남은<br>일수</th>
                         <th>등록<br>일자</th>
                         <th>상태</th>
+                        <th>메모<br>여부</th>
                         <th>전체<br>보기</th>
                         <th>원본<br>보기</th>
                     </tr>
@@ -141,6 +142,13 @@
                                     <span class="badge bg-primary">신청함</span>
                                 {% endif %}
                             </div>
+                        </td>
+                        <td class="text-center">
+                            {% if announcement.memo %}
+                                <i class="bi bi-check-circle-fill text-success" title="메모 있음"></i>
+                            {% else %}
+                                <i class="bi bi-circle text-muted" title="메모 없음"></i>
+                            {% endif %}
                         </td>
                         <td>
                             <button type="button" class="btn btn-sm btn-outline-info" 
@@ -267,8 +275,12 @@
                                                 {% else %}
                                                     <input type="hidden" name="pbanc_sn" value="{{ announcement.pbanc_sn }}">
                                                 {% endif %}
-                                                <input type="hidden" name="is_interested" value="{% if announcement.is_interested %}on{% endif %}">
-                                                <input type="hidden" name="is_applied" value="{% if announcement.is_applied %}on{% endif %}">
+                                                {% if announcement.is_interested %}
+                                                    <input type="hidden" name="is_interested" value="on">
+                                                {% endif %}
+                                                {% if announcement.is_applied %}
+                                                    <input type="hidden" name="is_applied" value="on">
+                                                {% endif %}
                                                 
                                                 <div class="form-group">
                                                     <label for="memo_{{ forloop.counter }}">메모</label>
