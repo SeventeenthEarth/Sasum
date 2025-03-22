@@ -140,11 +140,16 @@ def get_gemini_filtered_indices(prompt: str, model_name: str = 'gemini-1.5-flash
         try:
             result = json.loads(content)
             
+            # Check if result is the expected format with "serial_numbers" or "indices" keys
             if "serial_numbers" in result:
                 return result["serial_numbers"]
             elif "indices" in result:  # Fallback for backward compatibility
                 logger.warning("AI returned indices instead of serial numbers. Consider retraining.")
                 return result["indices"]
+            # Handle case where result is a list of announcement objects
+            elif isinstance(result, list) and len(result) > 0 and "pbanc_sn" in result[0]:
+                logger.warning("Gemini returned a list of announcements instead of serial numbers. Extracting serial numbers.")
+                return [str(item["pbanc_sn"]) for item in result if "pbanc_sn" in item]
             else:
                 logger.error(f"Invalid response format from Gemini: {content}")
                 return []
@@ -249,7 +254,70 @@ def call_ai_model_for_filtering(announcements: List[Any], user_condition: str, a
             if ai_platform == 'openai':
                 indices = get_openai_filtered_indices(prompt, model_name)
             elif ai_platform == 'gemini':
-                indices = get_gemini_filtered_indices(prompt, model_name)
+                # Create system prompt for Gemini
+                system_prompt = """
+                # Startup Grant Announcement Filter Assistant
+
+                You are an expert at analyzing and filtering startup grant announcements.
+
+                ## Role and Purpose
+                Your role is to examine a collection of startup/business grant announcements and identify those that match specific criteria provided by users.
+
+                ## Input Data Structure
+                You will receive:
+                1. A user condition expressed in natural language
+                2. A list of announcements in JSON format with fields like:
+                   - pbanc_sn: Serial number (unique identifier)
+                   - title: Announcement title
+                   - content: Main announcement content
+                   - url: URL to the detailed page
+                   - target: Application target/eligibility criteria
+                   - start_date: Application start date
+                   - end_date: Application end date
+                   - region: Supported region
+                   - organization: Announcing organization
+
+                ## Task
+                For each request:
+                1. Carefully analyze each announcement
+                2. Determine if it matches the user's condition
+                3. Return ONLY the serial numbers (pbanc_sn field) of matching announcements
+
+                ## Response Format
+                You must return ONLY a valid JSON object with the following structure:
+                ```json
+                {"serial_numbers": [123456, 789012, 345678]}
+                ```
+
+                Do not include any explanation, narrative, or additional text before or after the JSON.
+
+                ## Filtering Guidelines
+                - Analyze the user's condition thoroughly to understand what they're looking for
+                - Consider all relevant announcement fields when matching
+                - Include partial matches if they reasonably satisfy the user's criteria
+                - If the user condition mentions dates, prioritize announcements with active application periods
+                - If the user condition specifies a region, match announcements for that region or those marked as nationwide
+                - Use the content and target fields to determine eligibility requirements
+                - Return an empty array if no matches are found
+
+                ## Important Rules
+                1. Return ONLY valid JSON with no additional text
+                2. Never make up or invent serial numbers
+                3. Only include serial numbers from the provided announcements
+                4. Always return exact serial numbers as they appear in the input
+                5. Only include announcements that genuinely match the user's condition
+                """
+                
+                # Combine system prompt with user condition and announcements
+                gemini_prompt = system_prompt + f"""
+
+                User Condition: {user_condition}
+                
+                Announcements:
+                {json.dumps(simplified_announcements, ensure_ascii=False, indent=2)}
+                """
+                
+                indices = get_gemini_filtered_indices(gemini_prompt, model_name)
             
             # Filter the announcements based on the serial numbers from AI
             chunk_filtered_announcements = []
