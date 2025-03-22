@@ -366,7 +366,8 @@ class StoredAnnouncementView(View):
                    ('ongoing' in status_filters and start_date and end_date and start_date <= today and today <= end_date) or \
                    ('closed' in status_filters and end_date and today > end_date) or \
                    ('interested' in status_filters and ann['is_interested']) or \
-                   ('applied' in status_filters and ann['is_applied']):
+                   ('applied' in status_filters and ann['is_applied']) or \
+                   ('has_memo' in status_filters and ann['memo'] and ann['memo'].strip()):
                     filtered_results.append(ann)
             
             all_results = filtered_results

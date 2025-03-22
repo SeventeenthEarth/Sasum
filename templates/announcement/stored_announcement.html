@@ -68,6 +68,12 @@
                             <span class="badge bg-primary">신청함</span>
                         </label>
                     </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="status_filter" id="status_has_memo" value="has_memo" {% if 'has_memo' in status_filter %}checked{% endif %}>
+                        <label class="form-check-label" for="status_has_memo">
+                            <span class="badge bg-dark"><i class="bi bi-check-circle-fill"></i> 메모 있음</span>
+                        </label>
+                    </div>
                 </div>
             </div>
             
