@@ -106,6 +106,14 @@ SECRET_KEY=a_secure_secret_key_for_django
 
 플레이스홀더 값을 실제 API 키와 내용으로 대체하세요. 모든 AI API 키를 제공할 필요는 없습니다 - 애플리케이션은 구성한 API와 함께 작동합니다.
 
+OPENAI_API_KEY는 [OpenAI 플랫폼](https://platform.openai.com)에서 계정 생성 후 발급받을 수 있습니다.
+
+OPENAI_ASSISTANT_ID는 [OpenAI Assistants 플레이그라운드](https://platform.openai.com/playground/assistants)에서 Assistant를 설정한 후 얻을 수 있습니다.
+
+GEMINI_API_KEY는 Google의 [AI Studio](https://makersuite.google.com/)에서 "Get API Key" 옵션을 통해 발급받을 수 있습니다.
+
+PUBLIC_DATA_API_KEY는 "공공 데이터 포털"에 가입하고 [창업진흥원_K-Startup API](https://www.data.go.kr/data/15125364/openapi.do)에서 "활용 신청"을 통해 발급받을 수 있습니다.
+
 ### Docker로 실행하기
 
 1. 컨테이너 빌드 및 시작:
