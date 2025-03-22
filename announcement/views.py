@@ -23,7 +23,6 @@ class NewAnnouncementView(View):
         # Available AI integrated models for dropdown (limited to 3 specific models)
         ai_models = [
             ('openai-gpt-4o-mini', 'OpenAI - GPT-4o Mini'),
-            ('claude-3.5-haiku', 'Claude - 3.5 Haiku'),
             ('gemini-2.0-flash-lite', 'Gemini - 2.0 Flash-Lite'),
         ]
         
@@ -50,7 +49,6 @@ class NewAnnouncementView(View):
         # Available AI integrated models for dropdown (limited to 3 specific models)
         ai_models = [
             ('openai-gpt-4o-mini', 'OpenAI - GPT-4o Mini'),
-            ('claude-3.5-haiku', 'Claude - 3.5 Haiku'),
             ('gemini-2.0-flash-lite', 'Gemini - 2.0 Flash-Lite'),
         ]
         

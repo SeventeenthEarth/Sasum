@@ -113,7 +113,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # API Keys
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
-CLAUDE_API_KEY = os.environ.get('CLAUDE_API_KEY', '')
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
 PUBLIC_DATA_API_KEY = os.environ.get('PUBLIC_DATA_API_KEY', '')
 

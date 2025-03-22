@@ -16,7 +16,6 @@ logger = logging.getLogger(__name__)
 
 # Initialize AI clients
 openai_client = None
-claude_client = None
 gemini_client = None
 openai_assistant_id = None
 
@@ -30,13 +29,6 @@ if os.environ.get('OPENAI_API_KEY'):
             logger.warning("OPENAI_ASSISTANT_ID not set in environment variables")
     except Exception as e:
         logger.error(f"Failed to initialize OpenAI client: {str(e)}")
-
-# Initialize Claude client if API key exists
-if os.environ.get('CLAUDE_API_KEY'):
-    try:
-        claude_client = Anthropic(api_key=os.environ.get('CLAUDE_API_KEY'))
-    except Exception as e:
-        logger.error(f"Failed to initialize Claude client: {str(e)}")
 
 # Initialize Gemini client if API key exists
 if os.environ.get('GEMINI_API_KEY'):
@@ -127,48 +119,6 @@ def get_openai_filtered_indices(prompt: str, model_name: str = 'gpt-4o-mini') ->
         logger.error(f"Error with OpenAI Assistant: {str(e)}")
         return []
 
-def get_claude_filtered_indices(prompt: str, model_name: str = 'claude-3-5-sonnet-20240620') -> List[str]:
-    """Use Claude to filter announcements and return matching serial numbers"""
-    if not claude_client:
-        raise ValueError("CLAUDE_API_KEY가 설정되지 않았습니다.")
-    
-    try:
-        response = claude_client.messages.create(
-            model=model_name,
-            max_tokens=1000,
-            system="You are a helpful assistant that analyzes and filters announcements.",
-            messages=[
-                {"role": "user", "content": prompt}
-            ]
-        )
-        
-        content = response.content[0].text
-        
-        # Extract JSON from the response (Claude doesn't have json_mode)
-        try:
-            # Try to find JSON in the response
-            start_index = content.find('{')
-            end_index = content.rfind('}') + 1
-            
-            if start_index != -1 and end_index != -1:
-                json_content = content[start_index:end_index]
-                result = json.loads(json_content)
-                
-                if "serial_numbers" in result:
-                    return result["serial_numbers"]
-                elif "indices" in result:  # Fallback for backward compatibility
-                    logger.warning("AI returned indices instead of serial numbers. Consider retraining.")
-                    return result["indices"]
-            
-            logger.error(f"Invalid response format from Claude: {content}")
-            return []
-        except json.JSONDecodeError:
-            logger.error(f"Failed to parse JSON from Claude response: {content}")
-            return []
-    except Exception as e:
-        logger.error(f"Error with Claude: {str(e)}")
-        return []
-
 def get_gemini_filtered_indices(prompt: str, model_name: str = 'gemini-1.5-flash-latest') -> List[str]:
     """Use Gemini to filter announcements and return matching serial numbers"""
     if not gemini_client:
@@ -212,7 +162,7 @@ def call_ai_model_for_filtering(announcements: List[Any], user_condition: str, a
     Args:
         announcements: List of Announcement objects or dictionaries to filter
         user_condition: User's filtering criteria in natural language
-        ai_choice: The AI model to use ('openai-gpt-4o-mini', 'claude-3.5-sonnet', or 'gemini-1.5-flash')
+        ai_choice: The AI model to use ('openai-gpt-4o-mini' or 'gemini-1.5-flash')
         
     Returns:
         Tuple containing:
@@ -233,15 +183,9 @@ def call_ai_model_for_filtering(announcements: List[Any], user_condition: str, a
             'default': 'gpt-4o-mini',
             'gpt-4o-mini': 'gpt-4o-mini'
         },
-        'claude': {
-            'default': 'claude-3-5-sonnet-20240620',
-            '3.5-sonnet': 'claude-3-5-sonnet-20240620',
-            '3.5-haiku': 'claude-3-5-haiku-20240620'
-        },
         'gemini': {
-            'default': 'gemini-1.5-flash-latest',
-            '1.5-flash': 'gemini-1.5-flash-latest',
-            '2.0-flash-lite': 'gemini-2.0-flash-lite-latest'
+            'default': 'gemini-1.5-flash-lite',
+            '2.0-flash-lite': 'gemini-2.0-flash-lite'
         }
     }
     
@@ -254,14 +198,12 @@ def call_ai_model_for_filtering(announcements: List[Any], user_condition: str, a
             logger.warning(f"Unknown model '{model_key}' for platform '{ai_platform}'. Using default model.")
             model_name = ai_models[ai_platform]['default']
     else:
-        supported_choices = ['openai-gpt-4o-mini', 'claude-3.5-haiku', 'gemini-2.0-flash-lite']
+        supported_choices = ['openai-gpt-4o-mini', 'gemini-2.0-flash-lite']
         raise ValueError(f"지원되지 않는 AI 선택: {ai_choice}. 지원되는 옵션: {', '.join(supported_choices)}")
     
     # Check API key for selected platform
     if ai_platform == 'openai' and not openai_client:
         raise ValueError("OPENAI_API_KEY가 설정되지 않았습니다.")
-    elif ai_platform == 'claude' and not claude_client:
-        raise ValueError("CLAUDE_API_KEY가 설정되지 않았습니다.")
     elif ai_platform == 'gemini' and not gemini_client:
         raise ValueError("GEMINI_API_KEY가 설정되지 않았습니다.")
     
@@ -306,8 +248,6 @@ def call_ai_model_for_filtering(announcements: List[Any], user_condition: str, a
             # Call the appropriate platform-specific function
             if ai_platform == 'openai':
                 indices = get_openai_filtered_indices(prompt, model_name)
-            elif ai_platform == 'claude':
-                indices = get_claude_filtered_indices(prompt, model_name)
             elif ai_platform == 'gemini':
                 indices = get_gemini_filtered_indices(prompt, model_name)
             

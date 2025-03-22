@@ -7,7 +7,7 @@ A Django-based web application for fetching, filtering, and managing startup gra
 ## Features
 
 - Fetch announcements from the public data portal API (Korea Institute of Startup & Entrepreneurship Development)
-- AI-powered filtering to find announcements matching your specific criteria using OpenAI, Claude, or Gemini
+- AI-powered filtering to find announcements matching your specific criteria using OpenAI or Gemini
 - Store announcements in a PostgreSQL database
 - Mark announcements as "interested" or "applied" and add personal notes
 - Filter and sort stored announcements by various criteria
@@ -18,9 +18,8 @@ A Django-based web application for fetching, filtering, and managing startup gra
 - **Frontend**: Django templates with Bootstrap 5
 - **Database**: PostgreSQL 14
 - **AI Integration**: 
-  - OpenAI API (GPT models)
-  - Anthropic API (Claude models)
-  - Google Generative AI (Gemini models)
+  - OpenAI API - gpt-4o-mini
+  - Google Generative AI - gemini-2.0-flash-lite
 - **Deployment**: Docker and Docker Compose
 
 ## Setup Instructions
@@ -36,7 +35,7 @@ Create a `.env` file in the root directory with the following variables:
 
 ```
 OPENAI_API_KEY=your_openai_api_key
-CLAUDE_API_KEY=your_claude_api_key
+OPENAI_ASSISTANT_ID=yout_openai_assistant_id
 GEMINI_API_KEY=your_gemini_api_key
 PUBLIC_DATA_API_KEY=your_public_data_api_key
 POSTGRES_DB=announcement_db
@@ -87,7 +86,7 @@ python manage.py runserver
 ## Usage
 
 1. **New Announcements**: Visit `/new-announcement/` to:
-   - Select an AI platform (OpenAI, Claude, or Gemini)
+   - Select an AI platform (OpenAI or Gemini)
    - Choose a specific model for that platform
    - Enter your filtering condition
    - Fetch and filter new announcements
