@@ -26,6 +26,10 @@ class NewAnnouncementView(View):
             ('gemini-2.0-flash-lite', 'Gemini - 2.0 Flash-Lite'),
         ]
         
+        # Check for 'refresh' parameter (indicates browser refresh)
+        is_refresh = request.GET.get('refresh', '') == 'true'
+        
+        # Always present a clean form on GET request
         context = {
             'ai_models': ai_models,
             'user_condition': '',
@@ -34,6 +38,23 @@ class NewAnnouncementView(View):
             'startup_period': '',
             'target_age': '',
         }
+        
+        # Explicitly clear session data and results on refresh to prevent form resubmission
+        if is_refresh:
+            if 'form_submitted' in request.session:
+                del request.session['form_submitted']
+            if 'query_results' in request.session:
+                del request.session['query_results']
+                
+            # Clear any carried-over context variables that might be persisted
+            context['total_count'] = None
+            context['new_count'] = None
+            context['filtered_count'] = None
+            context['filtered_announcements'] = None
+            
+            # Set a flag to ensure results are not displayed
+            context['hide_results'] = True
+        
         return render(request, self.template_name, context)
 
     def post(self, request: HttpRequest) -> HttpResponse:
@@ -177,6 +198,15 @@ class NewAnnouncementView(View):
             
             # Count of new saved announcements
             new_count = len(saved_new_announcements)
+            
+            # Set non-resubmission flag in session
+            request.session['form_submitted'] = True
+            request.session['query_results'] = {
+                'filtered_serial_numbers': filtered_serial_numbers,
+                'total_count': total_count,
+                'new_count': new_count,
+                'filtered_count': len(saved_new_announcements),
+            }
             
             # Update context with results
             context.update({

@@ -116,23 +116,20 @@
     </div>
 </div>
 
-{% if total_count is not None %}
+{% if total_count is not None and not hide_results %}
 <div class="alert alert-info">
     <p class="mb-0">
         API에서 <strong>{{ total_count }}</strong>개의 공고를 발견했습니다.
         {% if new_count > 0 %}
-            <strong>{{ new_count }}</strong>개의 공고가 필터링 조건과 일치합니다.
+            <strong>{{ new_count }}</strong>개의 공고가 필터링 조건과 일치하여 데이터베이스에 저장합니다.
         {% else %}
             새로 저장된 공고가 없습니다 (모두 이미 데이터베이스에 존재).
-        {% endif %}
-        {% if filtered_count is not None %}
-            <strong>{{ filtered_count }}</strong>개의 새 공고가 데이터베이스에 저장되었습니다.
         {% endif %}
     </p>
 </div>
 {% endif %}
 
-{% if filtered_announcements %}
+{% if filtered_announcements and not hide_results %}
 <div class="card">
     <div class="card-header">
         <h5 class="card-title mb-0">필터링된 공고</h5>
@@ -303,7 +300,7 @@
         </div>
     </div>
 </div>
-{% elif filtered_announcements is not None and filtered_announcements|length == 0 %}
+{% elif filtered_announcements is not None and filtered_announcements|length == 0 and not hide_results %}
 <div class="alert alert-warning">
     <p class="mb-0">필터링 조건과 일치하는 공고가 없습니다. 조건을 조정해 보세요.</p>
 </div>
@@ -314,6 +311,39 @@
 {% block extra_js %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Force the browser to use GET on refresh 
+        // Add this at the top to prevent form resubmission
+        if (window.history.replaceState) {
+            window.history.replaceState(null, null, window.location.href);
+        }
+        
+        // On page load, check if this is a fresh page load or POST form result
+        // If there's no explicit post results being shown, clear all form inputs
+        const hasResults = document.querySelector('.alert-info') !== null || 
+                          document.querySelector('.alert-warning') !== null;
+        
+        if (!hasResults) {
+            // Reset form to completely empty state
+            const form = document.getElementById('fetchForm');
+            if (form) {
+                form.reset();
+                
+                // Clear text inputs
+                const inputs = form.querySelectorAll('input[type="text"]');
+                inputs.forEach(input => {
+                    input.value = '';
+                });
+                
+                // Reset selects to first option
+                const selects = form.querySelectorAll('select');
+                selects.forEach(select => {
+                    if (select.options.length > 0) {
+                        select.selectedIndex = 0;
+                    }
+                });
+            }
+        }
+        
         // Loading overlay
         const loadingOverlay = document.getElementById('loadingOverlay');
         
@@ -326,6 +356,59 @@
         } else {
             // Otherwise make sure it's hidden
             loadingOverlay.classList.remove('active');
+        }
+        
+        // Check if page was refreshed (using the performance API)
+        const pageAccessedByReload = (
+            window.performance &&
+            window.performance.navigation &&
+            window.performance.navigation.type === 1) || 
+            (window.performance.getEntriesByType && 
+             window.performance.getEntriesByType('navigation').length > 0 &&
+             window.performance.getEntriesByType('navigation')[0].type === 'reload');
+        
+        // If the page was refreshed, clear form fields and hide results
+        if (pageAccessedByReload) {
+            // Reset form fields
+            const form = document.getElementById('fetchForm');
+            if (form) {
+                form.reset();
+                
+                // Clear all text inputs completely
+                const inputs = form.querySelectorAll('input[type="text"]');
+                inputs.forEach(input => {
+                    input.value = '';
+                });
+                
+                // Reset all selects to default value
+                const selects = form.querySelectorAll('select');
+                selects.forEach(select => {
+                    if (select.options.length > 0) {
+                        select.selectedIndex = 0;
+                    }
+                });
+            }
+            
+            // Hide results sections
+            const resultsAlerts = document.querySelectorAll('.alert-info, .alert-warning');
+            resultsAlerts.forEach(alert => {
+                alert.style.display = 'none';
+            });
+            
+            // Hide filtered announcements card
+            const filteredAnnouncementsCard = document.querySelector('.card:not(.mb-4)'); // The second card in the page
+            if (filteredAnnouncementsCard) {
+                filteredAnnouncementsCard.style.display = 'none';
+            }
+            
+            // Set refresh parameter on URL to prevent form resubmission
+            if (window.history && window.history.replaceState) {
+                window.history.replaceState({}, document.title, window.location.pathname + '?refresh=true');
+                // Force reload without the form data
+                if (!window.location.href.includes('refresh=true')) {
+                    window.location.href = window.location.pathname + '?refresh=true';
+                }
+            }
         }
         
         // Disable the fetch button and show overlay after submission
